@@ -22,9 +22,9 @@ object Workouts8010 extends App {
   val HRZ_3 = Some(HrZoneTarget(3))
   val HRZ_4 = Some(HrZoneTarget(4))
   val HRZ_5 = Some(HrZoneTarget(5))
-  val THRESHOLD_PACE = Some(PaceTarget("4:30".perKm, "4:35".perKm))
-  val INTERVALS_PACE = Some(PaceTarget("4:10".perKm, "4:15".perKm))
-  val REPEATS_PACE = Some(PaceTarget("3:55".perKm, "4:00".perKm))
+  val THRESHOLD_PACE = Some(PaceTarget("4:25".perKm, "4:50".perKm))
+  val INTERVALS_PACE = Some(PaceTarget("3:47".perKm, "4:25".perKm))
+  val REPEATS_PACE = Some(PaceTarget("3:23".perKm, "3:47".perKm))
 
   implicit class SmartString(s: String) {
     def perKm = Pace(DistanceUnits.km, s)
@@ -36,7 +36,7 @@ object Workouts8010 extends App {
 
   implicit val config = Config(delete = true, mode = Some(Modes.`import`))
 
-  val stdWarmup = Seq(WarmupStep(LapButtonPressed, HRZ_1))
+  val stdWarmup = Seq(WarmupStep(LapButtonPressed))
   val stdCooldown = Seq(CooldownStep(LapButtonPressed))
 
   def run(name: String, steps: Seq[Step]): WorkoutDef =
@@ -62,9 +62,11 @@ object Workouts8010 extends App {
 
   def repeatsPace(time: TimeDuration) = IntervalStep(time, REPEATS_PACE)
 
-  def thresholdPace(time: TimeDuration) = IntervalStep(time, REPEATS_PACE)
+  def thresholdPace(time: TimeDuration) = IntervalStep(time, THRESHOLD_PACE)
 
-  def thresholdPace(distance: DistanceDuration) = IntervalStep(distance, REPEATS_PACE)
+  def thresholdPace(distance: DistanceDuration) = IntervalStep(distance, THRESHOLD_PACE)
+
+  def thresholdPace() = IntervalStep(LapButtonPressed, THRESHOLD_PACE)
 
   def longRun(d: Double, units: DistanceUnits.DistanceUnit = DistanceUnits.km) =
     IntervalStep(DistanceDuration(d.toFloat, units), HRZ_1)
@@ -81,32 +83,56 @@ object Workouts8010 extends App {
 
   def toKm(miles: Double) = (miles * 1.609344).toInt
 
-  implicit class SmartInt(i: Int) {
-    def secs = TimeDuration(seconds = i)
+  implicit class SmartInt(n: Int) {
+    def secs = TimeDuration(seconds = n)
 
-    def km = DistanceDuration(i, DistanceUnits.km)
+    def km = DistanceDuration(n, DistanceUnits.km)
+  }
+
+  implicit class SmartDouble(n: Double) {
+    def km = DistanceDuration(n.floatValue(), DistanceUnits.km)
   }
 
   val workouts: Seq[WorkoutDef] = Seq(
-    run("1km Intervals", intervals(6, intervalPace(1.km), recover(120.secs))),
-    run("2km Intervals", intervals(3, intervalPace(2.km), recover(300.secs))),
-    run("3km Intervals", intervals(3, intervalPace(3.km), recover(300.secs))),
-    run("Threshold Repeats", intervals(4, thresholdPace(2.km), recover(120.secs))),
-    run("Threshold Run", thresholdPace(5.km)),
-    run("Short Intervals", intervals(8, repeatsPace(60.secs), recover(120.secs))),
-    run("Hill Repeats", intervals(12, hard(30.secs), recover(90.secs))),
+    run("1km Intervals", intervals(6, intervalPace(1 km), recover(120 secs))),
+    run("2km Intervals", intervals(3, intervalPace(2 km), recover(180 secs))),
+    run("3km Intervals", intervals(3, intervalPace(3 km), recover(240 secs))),
+    run("Threshold Repeats", intervals(4, thresholdPace(2 km), recover(120 secs))),
+    run("Threshold Run", thresholdPace()),
+    run("Short Intervals", intervals(8, repeatsPace(60 secs), recover(120 secs))),
+    run("Hill Repeats", intervals(12, hard(30 secs), recover(90 secs))),
     run(name = "Pyramid 1:2:3:4:5:5:4:3:2:1", Seq(
-      IntervalStep(60.secs), RecoverStep(30.secs),
-      IntervalStep(120.secs), RecoverStep(60.secs),
-      IntervalStep(180.secs), RecoverStep(90.secs),
-      IntervalStep(240.secs), RecoverStep(120.secs),
-      IntervalStep(300.secs), RecoverStep(150.secs),
-      IntervalStep(300.secs), RecoverStep(150.secs),
-      IntervalStep(240.secs), RecoverStep(120.secs),
-      IntervalStep(180.secs), RecoverStep(90.secs),
-      IntervalStep(120.secs), RecoverStep(60.secs),
-      IntervalStep(60.secs)
-    ))
+      IntervalStep(60 secs), RecoverStep(30 secs),
+      IntervalStep(120 secs), RecoverStep(60 secs),
+      IntervalStep(180 secs), RecoverStep(90 secs),
+      IntervalStep(240 secs), RecoverStep(120 secs),
+      IntervalStep(300 secs), RecoverStep(150 secs),
+      IntervalStep(300 secs), RecoverStep(150 secs),
+      IntervalStep(240 secs), RecoverStep(120 secs),
+      IntervalStep(180 secs), RecoverStep(90 secs),
+      IntervalStep(120 secs), RecoverStep(60 secs),
+      IntervalStep(60 secs)
+    )),
+    WorkoutDef("running", "10k Progression", Seq(
+      IntervalStep(2 km, Some(PaceTarget("6:00".perKm, "5:50".perKm))),
+      IntervalStep(2 km, Some(PaceTarget("4:50".perKm, "4:40".perKm))),
+      IntervalStep(2 km, Some(PaceTarget("4:40".perKm, "4:35".perKm))),
+      IntervalStep(2 km, THRESHOLD_PACE),
+      IntervalStep(1 km, Some(PaceTarget("4:20".perKm, "4:30".perKm))),
+      IntervalStep(1 km, Some(PaceTarget("4:10".perKm, "4:20".perKm)))
+    ) ++ stdCooldown),
+    WorkoutDef("running", "Stryd CPT (time)", Seq(
+      RecoverStep(600 secs),
+      IntervalStep(540 secs),
+      RecoverStep(1800 secs),
+      IntervalStep(180 secs)
+    ) ++ stdCooldown),
+    WorkoutDef("running", "Stryd CPT (distance)", Seq(
+      RecoverStep(600 secs),
+      IntervalStep(2.4 km),
+      RecoverStep(1800 secs),
+      IntervalStep(1.2 km)
+    ) ++ stdCooldown),
   )
   val workouts_8020: Seq[WorkoutDef] = Seq(
     // Speed Play
